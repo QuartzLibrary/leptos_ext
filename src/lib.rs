@@ -1,3 +1,3 @@
-mod defer;
-mod signal;
-mod util;
+// pub mod defer; // TODO: WeakOwner
+pub mod signal;
+pub mod util;
