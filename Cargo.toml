@@ -15,3 +15,4 @@ tokio = { version = "1", features = ["time"], default-features = false }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 gloo-timers = { version = "0.3.0", features = ["futures"] }
+wasm-bindgen-futures = "0.4"

@@ -56,8 +56,16 @@ impl<T> SharedBox<T> {
 pub async fn sleep(duration: Duration) {
     #[cfg(not(target_family = "wasm"))]
     tokio::time::sleep(duration).await;
+
     #[cfg(target_family = "wasm")]
-    gloo_timers::future::sleep(duration).await;
+    {
+        let (send, recv) = futures::channel::oneshot::channel();
+        wasm_bindgen_futures::spawn_local(async move {
+            gloo_timers::future::sleep(duration).await;
+            let _ = send.send(());
+        });
+        recv.await.unwrap();
+    }
 }
 
 // TODO
