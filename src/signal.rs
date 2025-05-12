@@ -1,5 +1,4 @@
 use either::Either;
-use instant::Instant;
 use leptos::prelude::{
     ArcRwSignal, Effect, ImmediateEffect, Memo, Notify, Set, Signal, Update, With, WithUntracked,
     on_cleanup, untrack,
@@ -11,6 +10,7 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
+use web_time::Instant;
 
 use crate::util;
 use crate::util::{SharedBox, Task};
@@ -350,7 +350,7 @@ pub trait ReadSignalExt:
         mut f: impl FnMut(&Self::Inner) + Send + Sync + 'static,
     ) {
         let mut first = true;
-        self.for_each(move |value| {
+        self.for_each_immediate(move |value| {
             if first {
                 first = false;
             } else {
@@ -368,7 +368,7 @@ pub trait ReadSignalExt:
         Fut: Future<Output = ()> + Send + Sync + 'static,
     {
         let mut task = None;
-        self.for_each(move |v| {
+        self.for_each_immediate(move |v| {
             drop(task.take());
             untrack(|| task.replace(Some(Task::new(f(v)))));
         });
@@ -382,7 +382,7 @@ pub trait ReadSignalExt:
         Self::Inner: Clone,
     {
         let mut old = self.with_untracked(Clone::clone);
-        self.for_each_after_first(move |new| {
+        self.for_each_after_first_immediate(move |new| {
             untrack(|| f(&old, new));
             old = new.clone();
         });
@@ -600,4 +600,21 @@ impl<I> Clone for SignalBag<I> {
 pub enum Load<T> {
     Loading,
     Ready(T),
+}
+impl<T> Load<T> {
+    pub fn is_ready(&self) -> bool {
+        matches!(self, Load::Ready(_))
+    }
+    pub fn ready(self) -> Option<T> {
+        match self {
+            Load::Ready(v) => Some(v),
+            Load::Loading => None,
+        }
+    }
+    pub fn as_ref(&self) -> Load<&T> {
+        match self {
+            Load::Ready(v) => Load::Ready(v),
+            Load::Loading => Load::Loading,
+        }
+    }
 }

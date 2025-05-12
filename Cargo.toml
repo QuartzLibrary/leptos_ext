@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 leptos = "0.7"
 either = "1"
-instant = "0.1"
+web-time = "1"
 futures = "0.3"
 log = "0.4"
 

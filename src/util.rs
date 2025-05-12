@@ -90,6 +90,15 @@ impl Task {
         leptos::task::spawn(f);
         Self { abort_handle }
     }
+    pub fn new_local(f: impl Future<Output = ()> + 'static) -> Self {
+        let (abort_handle, abort_registration) = AbortHandle::new_pair();
+        let f = Abortable::new(f, abort_registration);
+        let f = async move {
+            let _ = f.await;
+        };
+        leptos::task::spawn_local(f);
+        Self { abort_handle }
+    }
 }
 
 impl Drop for Task {
