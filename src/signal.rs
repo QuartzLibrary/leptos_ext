@@ -618,3 +618,14 @@ impl<T> Load<T> {
         }
     }
 }
+impl<T> Load<&T> {
+    pub fn cloned(self) -> Load<T>
+    where
+        T: Clone,
+    {
+        match self {
+            Load::Ready(v) => Load::Ready(v.clone()),
+            Load::Loading => Load::Loading,
+        }
+    }
+}
