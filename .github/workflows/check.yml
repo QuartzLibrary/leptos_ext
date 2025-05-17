@@ -1,0 +1,40 @@
+name: Run clippy
+
+on:
+  push:
+    branches: ["*"]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install WASM toolchain
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Check project
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Check project (WASM)
+        run: cargo clippy --workspace --all-features --target wasm32-unknown-unknown -- -D warnings
