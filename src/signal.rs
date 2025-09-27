@@ -1,7 +1,7 @@
 use either::Either;
 use leptos::prelude::{
-    ArcRwSignal, Effect, ImmediateEffect, Memo, Notify, Set, Signal, Update, With, WithUntracked,
-    on_cleanup, untrack,
+    ArcRwSignal, Effect, ImmediateEffect, Memo, Notify, RwSignal, Set, Signal, Update, With,
+    WithUntracked, on_cleanup, untrack,
 };
 use std::{
     fmt,
@@ -438,9 +438,20 @@ pub trait WriteSignalExt:
         }
     }
 
+    fn double_bind<U>(
+        self,
+        from: impl FnMut(&Self::Inner) -> U + Send + Sync + 'static,
+        to: impl FnMut(&U) -> Self::Inner + Send + Sync + 'static,
+    ) -> RwSignal<U>
+    where
+        Self::Inner: Sized,
+        U: Clone + Send + Sync + 'static,
+    {
+        self.double_bind_arc(from, to).into()
+    }
     // TODO: get rid of this by adding derived rw signals? Slices?
     // Here it would be useful to have the rw equivalent of [Signal].
-    fn double_bind<U>(
+    fn double_bind_arc<U>(
         self,
         mut from: impl FnMut(&Self::Inner) -> U + Send + Sync + 'static,
         mut to: impl FnMut(&U) -> Self::Inner + Send + Sync + 'static,
