@@ -1,7 +1,7 @@
 use either::Either;
 use leptos::prelude::{
-    ArcRwSignal, Effect, ImmediateEffect, Memo, Notify, RwSignal, Set, Signal, Update, With,
-    WithUntracked, on_cleanup, untrack,
+    ArcRwSignal, ArcSignal, Effect, ImmediateEffect, Memo, Notify, RwSignal, Set, Signal, Update,
+    With, WithUntracked, on_cleanup, untrack,
 };
 use std::{
     fmt,
@@ -640,3 +640,18 @@ impl<T> Load<&T> {
         }
     }
 }
+
+pub trait ReactiveFuture: Future + Sized {
+    #[track_caller]
+    fn into_signal(self) -> ArcSignal<Load<<Self as Future>::Output>>
+    where
+        Self: Send + Sync + 'static,
+        <Self as Future>::Output: Send + Sync + 'static,
+    {
+        let mut fut = Some(self);
+        ArcRwSignal::new(())
+            .map_async(move |()| fut.take().unwrap())
+            .into()
+    }
+}
+impl<T> ReactiveFuture for T where T: Future + Sized {}
