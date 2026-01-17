@@ -387,6 +387,61 @@ pub trait ReadSignalExt:
             old = new.clone();
         });
     }
+
+    /// Allows you to double-bind the current value to a child signal.
+    ///
+    /// Note: this is a very general binding that among other things does not require [Self] to be writable.
+    /// This is because you might want to set a signal upstream of it instead.
+    ///
+    /// In general, prefer using [WriteSignalExt::double_bind] or [WriteSignalExt::double_bind_arc] instead.
+    fn raw_double_bind_arc<U>(
+        self,
+        initial: U,
+        mut react_to_self: impl FnMut(&ArcRwSignal<U>, &Self::Inner) + Send + Sync + 'static,
+        mut react_to_child: impl FnMut(&Self, &U) + Send + Sync + 'static,
+    ) -> ArcRwSignal<U>
+    where
+        Self::Inner: Sized,
+        U: Clone + Send + Sync + 'static,
+    {
+        #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+        enum Status {
+            Idle,
+            ReactingParent,
+            ReactingChild,
+        }
+
+        let child: ArcRwSignal<U> = ArcRwSignal::new(initial);
+
+        let lock = SharedBox::new(Status::Idle);
+
+        self.for_each_after_first_immediate({
+            let lock = lock.clone();
+            let child = child.clone();
+            move |value| match lock.get() {
+                Status::Idle => {
+                    lock.from_to(&Status::Idle, Status::ReactingParent);
+                    leptos::reactive::effect::batch(|| react_to_self(&child, value));
+                    lock.from_to(&Status::ReactingParent, Status::Idle);
+                }
+                Status::ReactingParent => unreachable!(),
+                Status::ReactingChild => {}
+            }
+        });
+
+        let self_ = self.clone();
+        child.for_each_after_first_immediate(move |value| match lock.get() {
+            Status::Idle => {
+                lock.from_to(&Status::Idle, Status::ReactingChild);
+                leptos::reactive::effect::batch(|| react_to_child(&self_, value));
+                lock.from_to(&Status::ReactingChild, Status::Idle);
+            }
+            Status::ReactingParent => {}
+            Status::ReactingChild => unreachable!(),
+        });
+
+        child
+    }
 }
 impl<T> ReadSignalExt for T
 where
@@ -460,43 +515,12 @@ pub trait WriteSignalExt:
         Self::Inner: Sized,
         U: Clone + Send + Sync + 'static,
     {
-        #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-        enum Status {
-            Idle,
-            ReactingParent,
-            ReactingChild,
-        }
-
-        let child: ArcRwSignal<U> = ArcRwSignal::new(self.with_untracked(&mut from));
-
-        let lock = SharedBox::new(Status::Idle);
-
-        self.for_each_after_first_immediate({
-            let lock = lock.clone();
-            let child = child.clone();
-            move |value| match lock.get() {
-                Status::Idle => {
-                    lock.from_to(&Status::Idle, Status::ReactingParent);
-                    child.set(from(value));
-                    lock.from_to(&Status::ReactingParent, Status::Idle);
-                }
-                Status::ReactingParent => unreachable!(),
-                Status::ReactingChild => {}
-            }
-        });
-
-        let self_ = self.clone();
-        child.for_each_after_first_immediate(move |value| match lock.get() {
-            Status::Idle => {
-                lock.from_to(&Status::Idle, Status::ReactingChild);
-                self_.set(to(value));
-                lock.from_to(&Status::ReactingChild, Status::Idle);
-            }
-            Status::ReactingParent => {}
-            Status::ReactingChild => unreachable!(),
-        });
-
-        child
+        let initial = self.with_untracked(&mut from);
+        self.raw_double_bind_arc(
+            initial,
+            move |child, value| child.set(from(value)),
+            move |self_, value| self_.set(to(value)),
+        )
     }
 }
 impl<T, Value> WriteSignalExt for T where
