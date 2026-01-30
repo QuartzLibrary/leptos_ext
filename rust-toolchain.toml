@@ -1,5 +1,5 @@
 [toolchain]
-channel = "1.90"
+channel = "nightly-2026-01-30"
 targets = ["wasm32-unknown-unknown"]
 components = [
     "rustc",
