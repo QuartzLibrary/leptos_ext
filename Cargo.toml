@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-leptos = "0.8"
+leptos = ">=0.8.11" # Needs `effect::batch`
 either = "1"
 web-time = "1"
 futures = "0.3"
