@@ -10,10 +10,10 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
+use utile::{task::Task, time};
 use web_time::Instant;
 
-use crate::util;
-use crate::util::{SharedBox, Task};
+use crate::util::SharedBox;
 
 pub trait ReadSignalExt:
     With<Value = <Self as ReadSignalExt>::Inner>
@@ -170,7 +170,7 @@ pub trait ReadSignalExt:
                 let signal = signal.clone();
                 task = Some(task.take().unwrap_or_else(move || {
                     Task::new(async move {
-                        util::sleep(duration).await;
+                        time::sleep(duration).await;
                         done.set(true);
                         signal.set(self_.with_untracked(Clone::clone));
                     })
@@ -221,7 +221,7 @@ pub trait ReadSignalExt:
                         None
                     }
                     None => Some(Task::new(async move {
-                        util::sleep(duration).await;
+                        time::sleep(duration).await;
                         last_update.set(Instant::now());
                         signal.set(self_.with_untracked(Clone::clone));
                         done.set(true);
