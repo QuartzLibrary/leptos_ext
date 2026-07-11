@@ -2,12 +2,15 @@
 name = "leptos_ext"
 version = "0.1.0"
 edition = "2024"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/QuartzLibrary/leptos_ext"
+description = "Extension utilities for Leptos"
 
 [dependencies]
-utile = { git = "https://github.com/QuartzLibrary/bio" } # rev = "2895f5feed801850d39bd2e429220ac1785c6c50"
-
-leptos = ">=0.8.11" # Needs `effect::batch`
 either = "1"
-web-time = "1"
 futures = "0.3"
+leptos = ">=0.8.11" # Needs `effect::batch`
 log = "0.4"
+utile = "0.1"
+web-time = "1"

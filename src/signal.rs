@@ -652,6 +652,12 @@ impl<T> Load<T> {
             Load::Loading => Load::Loading,
         }
     }
+    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> Load<U> {
+        match self {
+            Load::Ready(v) => Load::Ready(f(v)),
+            Load::Loading => Load::Loading,
+        }
+    }
 }
 impl<T> Load<&T> {
     pub fn cloned(self) -> Load<T>
